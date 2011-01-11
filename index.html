@@ -1,0 +1,41 @@
+<!DOCTYPE html> 
+<html> 
+<head> 
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/> 
+  <title>LOGO</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js" type="text/javascript" charset="utf-8"></script> 
+  <style type="text/css" media="screen"> 
+    body {
+      margin:0;
+      padding:0;
+      overflow:hidden;
+    }
+    #can {
+      float: left;
+    }
+  	#console {
+      float: right;
+    }
+    #console form, #console textarea {
+      width: 100%;
+      height: 90%;
+    }
+  </style> 
+</head> 
+<body> 
+  <canvas id="can" width="100" height="100"></canvas> 
+  <div id="console"> 
+    <form>
+      <textarea id="program">; COMMENT
+CLEARSCREEN
+FORWARD 10
+LEFT 90
+REPEAT 2 [ FORWARD 20 RIGHT 90 ] ; more
+back 20
+      </textarea>
+      <a id="run" href="#">Run</a>
+    <form>
+  </div> 
+  <script src="logo.js" type="text/javascript" charset="utf-8"></script> 
+</body> 
+</html> 
