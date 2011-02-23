@@ -1,7 +1,12 @@
 (function () {
   var cmdMove = function (distance) {
     ctx.translate(distance, 0);
-    ctx.lineTo(0, 0);// if pen up ctx.moveTo(0, 0);
+    if (state.penDown) {
+      ctx.lineTo(0, 0);
+    }
+    else {
+      ctx.moveTo(0, 0);
+    }
   };
   var cmdRotate = function (degrees) {
     ctx.rotate((degrees * Math.PI / 180));
@@ -15,9 +20,19 @@
     ctx.moveTo(0, 0);
   }
 
+  var state = {
+    penDown: true,
+  };
+  var variables = {};
+  /*
+   arg types:
+     v = value
+     s = symbol (variable name)
+     b = block of commands
+  */ 
   var commands = {
     'REPEAT': {
-      'args': ['s', 'v'],
+      'args': ['v', 'b'],
       'f': function (count, commands) {
         var i;
         for (i = 0; i < count; i++) {
@@ -26,72 +41,149 @@
       }
     },
     'FORWARD': {
-      'args': ['s'],
+      'args': ['v'],
       'f': cmdMove
     },
     'BACK': {
-      'args': ['s'],
+      'args': ['v'],
       'f': function (distance) { cmdMove(-distance); }
     },
     'LEFT': {
-      'args': ['s'],
+      'args': ['v'],
       'f': function (deg) { cmdRotate(-deg); }
     },
     'RIGHT': {
-      'args': ['s'],
+      'args': ['v'],
       'f': cmdRotate
     },
     'CLEARSCREEN': {
       'args': [],
       'f': cmdClearScreen
-    }
+    },
+    'PRINT': {
+      'args': ['v'],
+      'f': function (arg) { console.log(arg); }
+    },
+    'MAKE': {
+      'args': ['s', 'v'],
+      'f': function (name, value) { variables[name] = value }
+    },
+    'PENUP': {
+      'args': [],
+      'f': function () { state.penDown = false }
+    },
+    'PENDOWN': {
+      'args': [],
+      'f': function () { state.penDown = true }
+    },
+    'SETPENCOLOUR': {
+      'args': ['v'],
+      'f': function () {}
+    },
   };
-    
+  var aliases = {
+    'CS': 'CLEARSCREEN',
+    'FD': 'FORWARD',
+  };
+  
+  
   var tokenizeInput = function (input) {
-    return input
-      // Remove comments (semi-colon to end of line).
-      .replace(/;.*?\n/g, '')
-      // Add whitespace around square brackets so they split correctly.
-      .replace('[', ' [ ')
-      .replace(']', ' ] ')
-      // Remove leading or trailing whitespace.
-      .trim()
-      // Tokenize the input
-      .split(/\s+/);
+    var lines = input.split(/\n/g),
+      tokens = [],
+      token,
+      words,
+      word;
+
+    for (var i = 0, ll = lines.length; i < ll; i++) {
+      words = lines[i]
+        // Remove comments (semi-colon to end of line).
+        .replace(/;.*?$/, '')
+        // Add whitespace around square brackets so they split correctly.
+        .replace('[', ' [ ')
+        .replace(']', ' ] ')
+        // Remove leading or trailing whitespace.
+        .trim()
+        // Split by white space.
+        .split(/\s+/);
+      for (var j = 0, wl = words.length; j < wl; j++) {
+        if (words[j]) {
+          tokens.push({
+            line: i + 1,
+            value: words[j].toUpperCase()
+          });
+        }
+      }
+    }
+
+    return tokens;
   };
   
   var parseTokens = function (tokens) {
-    var t = null, tree = [];
+    var token, tree = [];
     while (tokens.length) {
-      switch (t = tokens.shift()) {
-        case '[':
-          tree.push(parseTokens(tokens));
-          break;
-        case ']':
-          return tree;
-        default:
-          tree.push(t);
+      token = tokens.shift();
+      switch (token.value) {
+      case '[':
+        tree.push(parseTokens(tokens));
+        break;
+
+      case ']':
+        return tree;
+
+      default:
+        if (token.value[0] == ':') {
+          token.type = 'symbol';
+          token.value = token.value.substr(1);
+        }
+        else if (token.value[0] == '"') {
+          token.type = 'value';
+          token.value = token.value.substr(1);
+        }
+        else if (parseInt(token.value).toString() == token.value) {
+          token.type = 'value';
+          token.value = token.value;
+        }
+        else {
+          token.type = 'command';
+          // Look up aliases.
+          token.command = commands[aliases[token.value] || token.value];
+        }
+        tree.push(token);
       }
     }
     return tree;
   };
 
   var evalTree = function (tree) {
-    var t;
+    var token, command, args, arg;
     while (tree.length) {
-      t = tree.shift();
-      if (command = commands[t.toUpperCase()]) {
+      token = tree.shift();
+      if (token.command) {
         // Check that the correct arguments are available.
-        var args = [], arg;
-        for (var i = 0; i < command.args.length; i++) {
+        args = [];
+        command = token.command;
+        for (var i = 0, l = command.args.length; i < l; i++) {
+          // TODO check argument types against expected types.
           arg = tree.shift();
-          args.push(arg);
+//          console.log(arg);
+//          console.log(command.args[i]);
+          if (arg.type == 'value') {
+            args.push(arg.value);
+          }
+          else if (arg.type == 'symbol') {
+            args.push(variables[arg.value]);
+          }
+          else {
+            args.push(arg);
+          }
+          
         }
-        console.log(t.toUpperCase() + ": " + args);
-        command.f.apply(this, args);
+        console.log(token.value + ": " + args);
+        token.command.f.apply(this, args);
       }
       else {
-        console.log("unknow command " + t);
+        console.log("unknown command " + token.value + " on line " + token.line);
+        return false;
       }
     }
   }
@@ -102,9 +194,11 @@
 console.log(tree);
     evalTree(tree);
     
-    ctx.stroke();		// show the track
+    // show the track
+    ctx.stroke();
     
-    ctx.beginPath(); // start turtle display
+    // start turtle display
+    ctx.beginPath(); 
     ctx.moveTo(0,-5);
     ctx.lineTo(20,0);
     ctx.lineTo(0, 5);
