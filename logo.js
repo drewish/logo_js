@@ -31,6 +31,7 @@
      b = block of commands
   */ 
   var commands = {
+    // FLOW
     'REPEAT': {
       'args': ['v', 'b'],
       'f': function (count, commands) {
@@ -40,6 +41,7 @@
         }
       }
     },
+    // MOVEMENT
     'FORWARD': {
       'args': ['v'],
       'f': cmdMove
@@ -56,17 +58,10 @@
       'args': ['v'],
       'f': cmdRotate
     },
+    // DISPLAY
     'CLEARSCREEN': {
       'args': [],
       'f': cmdClearScreen
-    },
-    'PRINT': {
-      'args': ['v'],
-      'f': function (arg) { console.log(arg); }
-    },
-    'MAKE': {
-      'args': ['s', 'v'],
-      'f': function (name, value) { variables[name] = value }
     },
     'PENUP': {
       'args': [],
@@ -80,6 +75,25 @@
       'args': ['v'],
       'f': function () {}
     },
+    'PRINT': {
+      'args': ['v'],
+      'f': function (arg) { console.log(arg); }
+    },
+    // VARIABLES
+    'MAKE': {
+      'args': ['s', 'v'],
+      'f': function (name, value) {
+        variables[name] = value;
+        return value;
+      }
+    },
+    // MATH
+    'SUM': {
+      'args': ['s', 'v'],
+      'f': function (left, right) {
+        return left + right;
+      }
+    }
   };
   var aliases = {
     'CS': 'CLEARSCREEN',
@@ -141,7 +155,11 @@
         }
         else if (parseInt(token.value).toString() == token.value) {
           token.type = 'value';
-          token.value = token.value;
+          token.value = parseInt(token.value);
+        }
+        else if (parseFloat(token.value).toString() == token.value) {
+          token.type = 'value';
+          token.value = parseFloat(token.value);
         }
         else {
           token.type = 'command';
@@ -155,43 +173,46 @@
   };
 
   var evalTree = function (tree) {
-    var token, command, args, arg;
+    var token;
     while (tree.length) {
       token = tree.shift();
       if (token.command) {
-        // Check that the correct arguments are available.
-        args = [];
-        command = token.command;
-        for (var i = 0, l = command.args.length; i < l; i++) {
-          // TODO check argument types against expected types.
-          arg = tree.shift();
-//          console.log(arg);
-//          console.log(command.args[i]);
-          if (arg.type == 'value') {
-            args.push(arg.value);
-          }
-          else if (arg.type == 'symbol') {
-            args.push(variables[arg.value]);
-          }
-          else {
-            args.push(arg);
-          }
-          
-        }
-        console.log(token.value + ": " + args);
-        token.command.f.apply(this, args);
+        executeCommand(token, tree);
       }
       else {
-        console.log("unknown command " + token.value + " on line " + token.line);
+        console.log("Unknown command " + token.value + " on line " + token.line);
         return false;
       }
     }
   }
 
+  var executeCommand = function (token, tree) {
+    // Check that the correct arguments are available.
+    var command = token.command, args = [], arg;
+
+    for (var i = 0, l = command.args.length; i < l; i++) {
+      // TODO check argument types against expected types.
+      arg = tree.shift();
+      if (arg.type == 'value') {
+        args.push(arg.value);
+      }
+      else if (arg.type == 'symbol') {
+        args.push(variables[arg.value]);
+      }
+      else if (arg.type == 'command') {
+        args.push(executeCommand(arg, tree));
+      }
+      else {
+        args.push(arg);
+      }
+    }
+    console.log(token.value + ": " + args);
+    return token.command.f.apply(this, args);
+  }
+
   var runInput = function (input) {
     var tokens = tokenizeInput(input);
     var tree = parseTokens(tokens);
-console.log(tree);
     evalTree(tree);
     
     // show the track
