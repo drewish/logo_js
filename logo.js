@@ -15,7 +15,7 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0) 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate(-Math.PI / 2); 
+    ctx.rotate(-Math.PI / 2);
     ctx.beginPath();
     ctx.moveTo(0, 0);
   }
@@ -65,15 +65,46 @@
     },
     'PENUP': {
       'args': [],
-      'f': function () { state.penDown = false }
+      'f': function () { 
+        state.penDown = false;
+      }
     },
     'PENDOWN': {
       'args': [],
-      'f': function () { state.penDown = true }
+      'f': function () {
+        state.penDown = true;
+      }
     },
     'SETPENCOLOUR': {
       'args': ['v'],
-      'f': function () {}
+      'f': function (value) {
+        var palette = [
+          '#000000', // black
+          '#0000ff', // blue
+          '#00ff00', // green
+          '#00ffff', // cyan
+          '#ff0000', // red
+          '#ff00ff', // magenta
+          '#ffff00', // yellow
+          '#ffffff', // white
+          '#8b4513', // brown
+          '#d2b48c', // tan
+          '#228b22', // forest
+          '#00ffff', // aqua
+          '#fa8072', // salmon
+          '#a020f0', // purple
+          '#ffa500', // orange
+          '#bebebe'  // grey
+        ];
+        if (palette[value]) {
+          // We want to stroke the current path then start a new one with the 
+          // current location as the first point.
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.strokeStyle = palette[value];
+        }
+      }
     },
     'PRINT': {
       'args': ['v'],
@@ -89,9 +120,21 @@
     },
     // MATH
     'SUM': {
-      'args': ['s', 'v'],
+      'args': ['v', 'v'],
       'f': function (left, right) {
         return left + right;
+      }
+    },
+    'DIFFERENCE': {
+      'args': ['v', 'v'],
+      'f': function (left, right) {
+        return left - right;
+      }
+    },
+    'MINUS': {
+      'args': ['v'],
+      'f': function (value) {
+        return -value;
       }
     }
   };
@@ -131,7 +174,7 @@
 
     return tokens;
   };
-  
+
   var parseTokens = function (tokens) {
     var token, tree = [];
     while (tokens.length) {
