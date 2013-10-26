@@ -12,7 +12,7 @@
     ctx.rotate((degrees * Math.PI / 180));
   };
   var cmdClearScreen = function () {
-    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.rotate(-Math.PI / 2);
@@ -196,9 +196,9 @@
           token.type = 'value';
           token.value = token.value.substr(1);
         }
-        else if (parseInt(token.value).toString() == token.value) {
+        else if (parseInt(token.value, 10).toString() == token.value) {
           token.type = 'value';
-          token.value = parseInt(token.value);
+          token.value = parseInt(token.value, 10);
         }
         else if (parseFloat(token.value).toString() == token.value) {
           token.type = 'value';
