@@ -12,7 +12,7 @@
     ctx.rotate((degrees * Math.PI / 180));
   };
   var cmdClearScreen = function () {
-    ctx.setTransform(1, 0, 0, 1, 0, 0) 
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.rotate(-Math.PI / 2);
@@ -29,7 +29,7 @@
      v = value
      s = symbol (variable name)
      b = block of commands
-  */ 
+  */
   var commands = {
     // FLOW
     'REPEAT': {
@@ -65,7 +65,7 @@
     },
     'PENUP': {
       'args': [],
-      'f': function () { 
+      'f': function () {
         state.penDown = false;
       }
     },
@@ -97,7 +97,7 @@
           '#bebebe'  // grey
         ];
         if (palette[value]) {
-          // We want to stroke the current path then start a new one with the 
+          // We want to stroke the current path then start a new one with the
           // current location as the first point.
           ctx.stroke();
           ctx.beginPath();
@@ -142,8 +142,8 @@
     'CS': 'CLEARSCREEN',
     'FD': 'FORWARD',
   };
-  
-  
+
+
   var tokenizeInput = function (input) {
     var lines = input.split(/\n/g),
       tokens = [],
@@ -257,12 +257,12 @@
     var tokens = tokenizeInput(input);
     var tree = parseTokens(tokens);
     evalTree(tree);
-    
+
     // show the track
     ctx.stroke();
-    
+
     // start turtle display
-    ctx.beginPath(); 
+    ctx.beginPath();
     ctx.moveTo(0,-5);
     ctx.lineTo(20,0);
     ctx.lineTo(0, 5);
@@ -284,8 +284,8 @@
 
   canvas.width = window.innerWidth / 2;
   canvas.height = window.innerHeight;
-  
+
   ctx = canvas.getContext('2d');
   cmdClearScreen()
-  ctx.strokeStyle = "#000"; 
+  ctx.strokeStyle = "#000";
 })()
