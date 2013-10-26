@@ -270,22 +270,20 @@
     ctx.fill();
   }
 
-  var canvas = document.getElementById('can'),
-    ctx;
+  var con = document.getElementById('console')
+    , canvas = document.getElementById('can')
+    , ctx = canvas.getContext('2d');
 
-  $('#console').css({
-    'width': window.innerWidth / 2,
-    'height': window.innerHeight,
-  });
-  $('#run').click(function (e) {
-    runInput( $('#program').val() );
-    e.preventDefault();
-  });
-
+  con.style.width = window.innerWidth / 2 + "px";
+  con.style.height = window.innerHeight + "px";
   canvas.width = window.innerWidth / 2;
   canvas.height = window.innerHeight;
 
-  ctx = canvas.getContext('2d');
-  cmdClearScreen()
+  document.getElementById('run').addEventListener('click', function(e) {
+    e.preventDefault();
+    runInput(document.getElementById('program').value);
+  }, false);
+
+  cmdClearScreen();
   ctx.strokeStyle = "#000";
-})()
+})();
