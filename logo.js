@@ -1,15 +1,12 @@
 /* jshint laxcomma: true */
 
 function Logo() {
-  this.state = {
-    penDown: true,
-    color: '#000000',
-    // The center of the graphics window (which may or may not be the entire
-    // screen, depending on the machine used) is turtle location [0 0].
-    x: 0,
-    y: 0,
-    a: 0,
-  };
+  this.turtleColor = 'black';
+  // The center of the graphics window (which may or may not be the entire
+  // screen, depending on the machine used) is turtle location [0 0].
+  this.turtleX = 0;
+  this.turtleY = 0;
+  this.turtleA = 0;
   this.newPath();
   this.variables = {};
 }
@@ -123,16 +120,16 @@ Logo.prototype.evalToken = function (token, tree) {
       args.push(arg);
     }
   }
-  console.log(token.value + ": " + args);
+  //console.log(token.value + ": " + args);
   return token.command.f.apply(this, args);
 };
 
 Logo.prototype.newPath = function() {
   var path = document.createElementNS("http://www.w3.org/2000/svg","path");
   path.classList.add('trail');
-  path.setAttribute('d', 'M ' + this.state.x + ',' + this.state.y);
+  path.setAttribute('d', 'M ' + this.turtleX + ',' + this.turtleY);
   path.setAttribute('fill', 'none');
-  path.setAttribute('stroke', this.state.color);
+  path.setAttribute('stroke', this.turtleColor);
   path.setAttribute('stroke-width', 2);
   document.getElementById('slate').appendChild(path);
 
@@ -140,29 +137,33 @@ Logo.prototype.newPath = function() {
   return path;
 };
 
+Logo.prototype.endPath = function() {
+  this.path = null;
+};
+
 Logo.prototype.move = function(distance) {
-  var state = this.state
-    , rads = state.a * Math.PI / 180
+  var rads = this.turtleA * Math.PI / 180
     , dx = distance * Math.sin(rads)
     , dy = distance * Math.cos(rads)
     ;
-  this.path.setAttribute('d', this.path.getAttribute('d') + ' l ' + dx + ',' + dy);
-  state.x += dx;
-  state.y += dy;
+  if (this.path) {
+    this.path.setAttribute('d', this.path.getAttribute('d') + ' l ' + dx + ',' + dy);
+  }
+  this.turtleX += dx;
+  this.turtleY += dy;
   this.updateTurtle();
 };
 
 Logo.prototype.rotate = function(degrees) {
-  this.state.a = (this.state.a + degrees) % 360;
+  this.turtleA = (this.turtleA + degrees) % 360;
   this.updateTurtle();
 };
 
 Logo.prototype.updateTurtle = function() {
-  var state = this.state;
   document.getElementById('turtle').setAttribute('transform',
     // Headings (angles) are measured in degrees clockwise from the positive Y
     // axis.
-    'translate(' + state.x + ',' + state.y +') rotate(' + -state.a + ')'
+    'translate(' + this.turtleX + ',' + this.turtleY +') rotate(' + -this.turtleA + ')'
   );
 };
 
@@ -216,9 +217,9 @@ Logo.prototype.commands.RIGHT = {
 Logo.prototype.commands.HOME = {
   'args': [],
   'f': function() {
-    this.state.x = 0;
-    this.state.y = 0;
-    this.state.a = 0;
+    this.turtleX = 0;
+    this.turtleY = 0;
+    this.turtleA = 0;
     this.updateTurtle();
   }
 };
@@ -242,13 +243,13 @@ Logo.prototype.commands.CLEARSCREEN = {
 Logo.prototype.commands.PENUP = {
   'args': [],
   'f': function () {
-    this.state.penDown = false;
+    this.endPath();
   }
 };
 Logo.prototype.commands.PENDOWN = {
   'args': [],
   'f': function () {
-    this.state.penDown = true;
+    this.newPath();
   }
 };
 Logo.prototype.commands.SETPENCOLOUR = {
@@ -272,10 +273,10 @@ Logo.prototype.commands.SETPENCOLOUR = {
           'orange',
           'grey'
         ];
-    if (palette[value] && this.state.color != palette[value]) {
+    if (palette[value] && this.turtleColor != palette[value]) {
       // We want to stroke the current path then start a new one with the
       // current location as the first point.
-      this.state.color = palette[value];
+      this.turtleColor = palette[value];
       this.newPath();
     }
   }
@@ -311,7 +312,6 @@ Logo.prototype.commands.MINUS = {
     return -value;
   }
 };
-
 
 (function () {
   var con = document.getElementById('console');
