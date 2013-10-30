@@ -22,7 +22,14 @@
   </style>
 </head>
 <body>
-  <canvas id="can" width="100" height="100"></canvas>
+  <svg xmlns="http://www.w3.org/2000/svg" width="50%" height="100%" style="float:left"
+    align="xMidYMid" viewBox="0 0 300 300" >
+    <!-- Positive X is to the right; positive Y is up. -->
+    <g id="slate" transform="translate(150,150) scale(1,-1)">
+      <path id="turtle" d="M 00 20 L 7 0 L -7 0 z" fill="none" stroke="black" stroke-width="2" />
+      <circle id="origin" cx='0' cy='0' r='5' fill='red' stroke='yellow' />
+    </g>
+  </svg>
   <div id="console">
     <form>
       <textarea id="program">; Configure the number of bands to draw.

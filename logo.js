@@ -1,28 +1,23 @@
 /* jshint laxcomma: true */
 
-function Logo(ctx) {
-  ctx.strokeStyle = "#000";
-
+function Logo() {
   this.state = {
     penDown: true,
-    heading: 0,
+    color: '#000000',
+    // The center of the graphics window (which may or may not be the entire
+    // screen, depending on the machine used) is turtle location [0 0].
     x: 0,
-    y: 0
+    y: 0,
+    a: 0,
   };
+  this.newPath();
   this.variables = {};
-  this.ctx = ctx;
-  this.clearScreen();
 }
 
 Logo.prototype.runInput = function (input) {
   var tokens = this.tokenizeInput(input);
   var tree = this.parseTokens(tokens);
   this.evalTree(tree);
-
-  // show the track
-  this.ctx.stroke();
-
-  this.drawTurtle();
 };
 
 Logo.prototype.tokenizeInput = function (input) {
@@ -132,11 +127,50 @@ Logo.prototype.evalToken = function (token, tree) {
   return token.command.f.apply(this, args);
 };
 
+Logo.prototype.newPath = function() {
+  var path = document.createElementNS("http://www.w3.org/2000/svg","path");
+  path.classList.add('trail');
+  path.setAttribute('d', 'M ' + this.state.x + ',' + this.state.y);
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', this.state.color);
+  path.setAttribute('stroke-width', 3);
+  document.getElementById('slate').appendChild(path);
 
+  this.path = path;
+  return path;
+};
+
+Logo.prototype.move = function(distance) {
+  var state = this.state
+    , rads = state.a * Math.PI / 180
+    , dx = distance * Math.sin(rads)
+    , dy = distance * Math.cos(rads)
+    ;
+  this.path.setAttribute('d', this.path.getAttribute('d') + ' l ' + dx + ',' + dy);
+  state.x += dx;
+  state.y += dy;
+  this.updateTurtle();
+};
+
+Logo.prototype.rotate = function(degrees) {
+  this.state.a = (this.state.a + degrees) % 360;
+  this.updateTurtle();
+};
+
+Logo.prototype.updateTurtle = function() {
+  var state = this.state;
+  document.getElementById('turtle').setAttribute('transform',
+    // Headings (angles) are measured in degrees clockwise from the positive Y
+    // axis.
+    'translate(' + state.x + ',' + state.y +') rotate(' + -state.a + ')'
+  );
+};
 
 Logo.prototype.aliases = {
   'CS': 'CLEARSCREEN',
   'FD': 'FORWARD',
+  'PU': 'PENUP',
+  'PD': 'PENDOWN',
 };
 
 Logo.prototype.commands = {};
@@ -160,7 +194,7 @@ Logo.prototype.commands.REPEAT = {
 // MOVEMENT
 Logo.prototype.commands.FORWARD = {
   'args': ['v'],
-  'f': Logo.prototype.move
+  'f': Logo.prototype.move,
 };
 Logo.prototype.commands.BACK = {
   'args': ['v'],
@@ -171,19 +205,39 @@ Logo.prototype.commands.BACK = {
 Logo.prototype.commands.LEFT = {
   'args': ['v'],
   'f': function (degrees) {
-    this.ctx.rotate((-degrees * Math.PI / 180));
+    this.rotate(-degrees);
   }
 };
 Logo.prototype.commands.RIGHT = {
   'args': ['v'],
-  'f': function (degrees) {
-    this.ctx.rotate((degrees * Math.PI / 180));
-  }
+  'f': Logo.prototype.rotate,
 };
 // DISPLAY
+Logo.prototype.commands.HOME = {
+  'args': [],
+  'f': function() {
+    this.state.x = 0;
+    this.state.y = 0;
+    this.state.a = 0;
+    this.updateTurtle();
+  }
+};
+Logo.prototype.commands.CLEAN = {
+  'args': [],
+  'f': function() {
+    var paths = document.getElementsByClassName('trail');
+    while (paths.length) {
+      paths[0].remove();
+    }
+    this.newPath();
+  }
+};
 Logo.prototype.commands.CLEARSCREEN = {
   'args': [],
-  'f': Logo.prototype.clearScreen
+  'f': function() {
+    this.commands.HOME.f.apply(this);
+    this.commands.CLEAN.f.apply(this);
+  }
 };
 Logo.prototype.commands.PENUP = {
   'args': [],
@@ -200,8 +254,7 @@ Logo.prototype.commands.PENDOWN = {
 Logo.prototype.commands.SETPENCOLOUR = {
   'args': ['v'],
   'f': function (value) {
-    var ctx = this.ctx
-      , palette = [
+    var palette = [
           '#000000', // black
           '#0000ff', // blue
           '#00ff00', // green
@@ -219,13 +272,11 @@ Logo.prototype.commands.SETPENCOLOUR = {
           '#ffa500', // orange
           '#bebebe'  // grey
         ];
-    if (palette[value]) {
+    if (palette[value] && this.state.color != palette[value]) {
       // We want to stroke the current path then start a new one with the
       // current location as the first point.
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.strokeStyle = palette[value];
+      this.state.color = palette[value];
+      this.newPath();
     }
   }
 };
@@ -261,49 +312,14 @@ Logo.prototype.commands.MINUS = {
   }
 };
 
-Logo.prototype.clearScreen = function () {
-  var ctx = this.ctx;
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
-  ctx.rotate(-Math.PI / 2);
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-};
-
-Logo.prototype.move = function (distance) {
-  var ctx = this.ctx;
-  ctx.translate(distance, 0);
-  if (this.state.penDown) {
-    ctx.lineTo(0, 0);
-  }
-  else {
-    ctx.moveTo(0, 0);
-  }
-};
-
-Logo.prototype.drawTurtle = function () {
-  var ctx = this.ctx;
-  ctx.beginPath();
-  ctx.moveTo(0,-5);
-  ctx.lineTo(20,0);
-  ctx.lineTo(0, 5);
-  ctx.closePath();
-  ctx.fill();
-};
-
 
 (function () {
-  var con = document.getElementById('console')
-    , canvas = document.getElementById('can')
-    , ctx = canvas.getContext('2d');
+  var con = document.getElementById('console');
 
   con.style.width = window.innerWidth / 2 + "px";
   con.style.height = window.innerHeight + "px";
-  canvas.width = window.innerWidth / 2;
-  canvas.height = window.innerHeight;
 
-  var logo = new Logo(ctx);
+  var logo = new Logo();
 
   document.getElementById('run').addEventListener('click', function(e) {
     e.preventDefault();
