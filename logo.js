@@ -133,7 +133,7 @@ Logo.prototype.newPath = function() {
   path.setAttribute('d', 'M ' + this.state.x + ',' + this.state.y);
   path.setAttribute('fill', 'none');
   path.setAttribute('stroke', this.state.color);
-  path.setAttribute('stroke-width', 3);
+  path.setAttribute('stroke-width', 2);
   document.getElementById('slate').appendChild(path);
 
   this.path = path;
@@ -255,22 +255,22 @@ Logo.prototype.commands.SETPENCOLOUR = {
   'args': ['v'],
   'f': function (value) {
     var palette = [
-          '#000000', // black
-          '#0000ff', // blue
-          '#00ff00', // green
-          '#00ffff', // cyan
-          '#ff0000', // red
-          '#ff00ff', // magenta
-          '#ffff00', // yellow
-          '#ffffff', // white
-          '#8b4513', // brown
-          '#d2b48c', // tan
-          '#228b22', // forest
-          '#00ffff', // aqua
-          '#fa8072', // salmon
-          '#a020f0', // purple
-          '#ffa500', // orange
-          '#bebebe'  // grey
+          'black',
+          'blue',
+          'green',
+          'cyan',
+          'red',
+          'magenta',
+          'yellow',
+          'white',
+          'brown',
+          'tan',
+          'forest',
+          'aqua',
+          'salmon',
+          'purple',
+          'orange',
+          'grey'
         ];
     if (palette[value] && this.state.color != palette[value]) {
       // We want to stroke the current path then start a new one with the

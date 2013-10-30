@@ -9,11 +9,13 @@
       padding:0;
       overflow:hidden;
     }
-    #can {
+    #canvas {
+      width: 50%;
+      height: 100%;
       float: left;
     }
-  	#console {
-      float: right;
+    #console {
+      float: left;
     }
     #console form, #console textarea {
       width: 100%;
@@ -22,12 +24,11 @@
   </style>
 </head>
 <body>
-  <svg xmlns="http://www.w3.org/2000/svg" width="50%" height="100%" style="float:left"
-    align="xMidYMid" viewBox="0 0 300 300" >
+  <svg xmlns="http://www.w3.org/2000/svg" id="canvas" align="xMidYMid" viewBox="0 0 500 500" >
     <!-- Positive X is to the right; positive Y is up. -->
-    <g id="slate" transform="translate(150,150) scale(1,-1)">
-      <path id="turtle" d="M 00 20 L 7 0 L -7 0 z" fill="none" stroke="black" stroke-width="2" />
-      <circle id="origin" cx='0' cy='0' r='5' fill='red' stroke='yellow' />
+    <g id="slate" transform="translate(250,250) scale(1,-1)">
+      <circle id="origin" cx='0' cy='0' r='3' fill='gainsboro' stroke='lightgray' />
+      <path id="turtle" d="M 00 15 L 5 0 L -5 0 z" fill="gainsboro" stroke="dimgray" stroke-width="1" />
     </g>
   </svg>
   <div id="console">
