@@ -1,20 +1,89 @@
 /* jshint laxcomma: true */
 
+function Turtle(element) {
+  this.element = element;
+  this.color = 'black';
+  this.drawing = true;
+  this.goHome();
+  this.startNewPath();
+}
+
+Turtle.prototype.startNewPath = function() {
+  var path;
+  if (this.drawing) {
+    path = document.createElementNS("http://www.w3.org/2000/svg","path");
+    path.classList.add('trail');
+    path.setAttribute('d', 'M ' + this.x + ',' + this.y);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', this.color);
+    path.setAttribute('stroke-width', 2);
+    // TODO: it'd be nice to avoid hardcoding this id
+    document.getElementById('slate').appendChild(path);
+  }
+  this.path = path;
+};
+
+Turtle.prototype.penUp = function () {
+  this.drawing = false;
+  this.path = null;
+};
+
+Turtle.prototype.penDown = function () {
+  this.drawing = true;
+  this.startNewPath();
+};
+
+Turtle.prototype.penColor = function (color) {
+  if (this.color != color) {
+    this.color = color;
+    this.startNewPath();
+  }
+};
+
+Turtle.prototype.goHome = function() {
+  this.path = null;
+  this.x = 0;
+  this.y = 0;
+  this.angle = 0;
+  this.update();
+};
+
+Turtle.prototype.move = function(distance) {
+  var rads = this.angle * Math.PI / 180
+    , dx = distance * Math.sin(rads)
+    , dy = distance * Math.cos(rads)
+    ;
+  if (this.path) {
+    this.path.setAttribute('d', this.path.getAttribute('d') + ' l ' + dx + ',' + dy);
+  }
+  this.x += dx;
+  this.y += dy;
+  this.update();
+};
+
+Turtle.prototype.rotate = function(degrees) {
+  this.angle = (this.angle + degrees) % 360;
+  this.update();
+};
+
+Turtle.prototype.update = function () {
+  // Headings (angles) are measured in degrees clockwise from the positive Y
+  // axis.
+  var transform = 'translate(' + this.x + ',' + this.y +') rotate(' + -this.angle + ')';
+  this.element.setAttribute('transform', transform);
+};
+
+// * * *
+
 function Logo() {
-  this.turtleColor = 'black';
-  // The center of the graphics window (which may or may not be the entire
-  // screen, depending on the machine used) is turtle location [0 0].
-  this.turtleX = 0;
-  this.turtleY = 0;
-  this.turtleA = 0;
-  this.newPath();
+  this.turtle = new Turtle(document.getElementById('turtle'));
   this.variables = {};
 }
 
 Logo.prototype.runInput = function (input) {
   var tokens = this.tokenizeInput(input);
   var tree = this.parseTokens(tokens);
-  this.evalTree(tree);
+  return this.evalTree(tree);
 };
 
 Logo.prototype.tokenizeInput = function (input) {
@@ -90,13 +159,11 @@ Logo.prototype.evalTree = function (tree) {
   var token;
   while (tree.length) {
     token = tree.shift();
-    if (token.command) {
-      this.evalToken(token, tree);
-    }
-    else {
+    if (!token.command) {
       console.log("Unknown command " + token.value + " on line " + token.line);
       return false;
     }
+    this.evalToken(token, tree);
   }
 };
 
@@ -122,49 +189,6 @@ Logo.prototype.evalToken = function (token, tree) {
   }
   //console.log(token.value + ": " + args);
   return token.command.f.apply(this, args);
-};
-
-Logo.prototype.newPath = function() {
-  var path = document.createElementNS("http://www.w3.org/2000/svg","path");
-  path.classList.add('trail');
-  path.setAttribute('d', 'M ' + this.turtleX + ',' + this.turtleY);
-  path.setAttribute('fill', 'none');
-  path.setAttribute('stroke', this.turtleColor);
-  path.setAttribute('stroke-width', 2);
-  document.getElementById('slate').appendChild(path);
-
-  this.path = path;
-  return path;
-};
-
-Logo.prototype.endPath = function() {
-  this.path = null;
-};
-
-Logo.prototype.move = function(distance) {
-  var rads = this.turtleA * Math.PI / 180
-    , dx = distance * Math.sin(rads)
-    , dy = distance * Math.cos(rads)
-    ;
-  if (this.path) {
-    this.path.setAttribute('d', this.path.getAttribute('d') + ' l ' + dx + ',' + dy);
-  }
-  this.turtleX += dx;
-  this.turtleY += dy;
-  this.updateTurtle();
-};
-
-Logo.prototype.rotate = function(degrees) {
-  this.turtleA = (this.turtleA + degrees) % 360;
-  this.updateTurtle();
-};
-
-Logo.prototype.updateTurtle = function() {
-  document.getElementById('turtle').setAttribute('transform',
-    // Headings (angles) are measured in degrees clockwise from the positive Y
-    // axis.
-    'translate(' + this.turtleX + ',' + this.turtleY +') rotate(' + -this.turtleA + ')'
-  );
 };
 
 Logo.prototype.aliases = {
@@ -195,33 +219,32 @@ Logo.prototype.commands.REPEAT = {
 // MOVEMENT
 Logo.prototype.commands.FORWARD = {
   'args': ['v'],
-  'f': Logo.prototype.move,
+  'f': function (distance) {
+    this.turtle.move(distance);
+  }
 };
 Logo.prototype.commands.BACK = {
   'args': ['v'],
   'f': function (distance) {
-    this.move(-distance);
+    this.turtle.move(-distance);
   }
 };
 Logo.prototype.commands.LEFT = {
   'args': ['v'],
   'f': function (degrees) {
-    this.rotate(-degrees);
+    this.turtle.rotate(-degrees);
   }
 };
 Logo.prototype.commands.RIGHT = {
   'args': ['v'],
-  'f': Logo.prototype.rotate,
+  'f': function (degrees) {
+    this.turtle.rotate(degrees);
+  }
 };
 // DISPLAY
 Logo.prototype.commands.HOME = {
   'args': [],
-  'f': function() {
-    this.turtleX = 0;
-    this.turtleY = 0;
-    this.turtleA = 0;
-    this.updateTurtle();
-  }
+  'f': function() { this.turtle.goHome(); }
 };
 Logo.prototype.commands.CLEAN = {
   'args': [],
@@ -230,54 +253,33 @@ Logo.prototype.commands.CLEAN = {
     while (paths.length) {
       paths[0].remove();
     }
-    this.newPath();
+    this.turtle.startNewPath();
   }
 };
 Logo.prototype.commands.CLEARSCREEN = {
   'args': [],
   'f': function() {
-    this.commands.HOME.f.apply(this);
     this.commands.CLEAN.f.apply(this);
+    this.commands.HOME.f.apply(this);
   }
 };
 Logo.prototype.commands.PENUP = {
   'args': [],
-  'f': function () {
-    this.endPath();
-  }
+  'f': function () { this.turtle.penUp(); }
 };
 Logo.prototype.commands.PENDOWN = {
   'args': [],
-  'f': function () {
-    this.newPath();
-  }
+  'f': function () { this.turtle.penDown(); }
 };
 Logo.prototype.commands.SETPENCOLOUR = {
   'args': ['v'],
   'f': function (value) {
     var palette = [
-          'black',
-          'blue',
-          'green',
-          'cyan',
-          'red',
-          'magenta',
-          'yellow',
-          'white',
-          'brown',
-          'tan',
-          'forest',
-          'aqua',
-          'salmon',
-          'purple',
-          'orange',
-          'grey'
+          'black', 'blue', 'green', 'cyan', 'red', 'magenta', 'yellow', 'white',
+          'brown', 'tan', 'forest', 'aqua', 'salmon', 'purple', 'orange', 'grey'
         ];
-    if (palette[value] && this.turtleColor != palette[value]) {
-      // We want to stroke the current path then start a new one with the
-      // current location as the first point.
-      this.turtleColor = palette[value];
-      this.newPath();
+    if (palette[value]) {
+      this.turtle.penColor(palette[value]);
     }
   }
 };
