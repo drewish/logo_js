@@ -1,51 +1,55 @@
 /* jshint laxcomma: true */
 
-function Turtle(element) {
-  this.element = element;
+function Turtle(turtleCallback, startPathCallback, addToPathCallback, endPathCallback) {
+  this.updateCallback = turtleCallback;
+  this.startPathCallback = startPathCallback;
+  this.addToPathCallback = addToPathCallback;
+  this.endPathCallback = endPathCallback;
   this.color = 'black';
   this.drawing = true;
   this.goHome();
-  this.startNewPath();
+  this.startPath();
 }
 
-Turtle.prototype.startNewPath = function() {
-  var path;
-  if (this.drawing) {
-    path = document.createElementNS("http://www.w3.org/2000/svg","path");
-    path.classList.add('trail');
-    path.setAttribute('d', 'M ' + this.x + ',' + this.y);
-    path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', this.color);
-    path.setAttribute('stroke-width', 2);
-    // TODO: it'd be nice to avoid hardcoding this id
-    document.getElementById('slate').appendChild(path);
+Turtle.prototype.startPath = function() {
+  if (this.drawing && this.startPathCallback) {
+    // TODO we should avoid starting new paths if we didn't move in our old one.
+    this.startPathCallback(this.x, this.y, this.color);
   }
-  this.path = path;
+};
+
+Turtle.prototype.endPath = function() {
+  if (this.drawing && this.endPathCallback) {
+    this.endPathCallback();
+  }
 };
 
 Turtle.prototype.penUp = function () {
   this.drawing = false;
-  this.path = null;
+  this.endPath();
 };
 
 Turtle.prototype.penDown = function () {
-  this.drawing = true;
-  this.startNewPath();
+  if (!this.drawing) {
+    this.drawing = true;
+    this.startPath();
+  }
 };
 
 Turtle.prototype.penColor = function (color) {
   if (this.color != color) {
     this.color = color;
-    this.startNewPath();
+    this.startPath();
   }
 };
 
 Turtle.prototype.goHome = function() {
-  this.path = null;
+  this.endPath();
   this.x = 0;
   this.y = 0;
   this.angle = 0;
   this.update();
+  this.startPath();
 };
 
 Turtle.prototype.move = function(distance) {
@@ -53,8 +57,8 @@ Turtle.prototype.move = function(distance) {
     , dx = distance * Math.sin(rads)
     , dy = distance * Math.cos(rads)
     ;
-  if (this.path) {
-    this.path.setAttribute('d', this.path.getAttribute('d') + ' l ' + dx + ',' + dy);
+  if (this.drawing && this.addToPathCallback) {
+    this.addToPathCallback(dx, dy);
   }
   this.x += dx;
   this.y += dy;
@@ -67,23 +71,28 @@ Turtle.prototype.rotate = function(degrees) {
 };
 
 Turtle.prototype.update = function () {
-  // Headings (angles) are measured in degrees clockwise from the positive Y
-  // axis.
-  var transform = 'translate(' + this.x + ',' + this.y +') rotate(' + -this.angle + ')';
-  this.element.setAttribute('transform', transform);
+  if (this.updateCallback) {
+    this.updateCallback(this.x, this.y, this.angle);
+  }
 };
 
 // * * *
 
-function Logo() {
-  this.turtle = new Turtle(document.getElementById('turtle'));
+// TODO: these callbacks are silly.
+function Logo(turtleCallback, startPathCallback, addToPathCallback, endPathCallback) {
+  this.turtle = new Turtle(turtleCallback, startPathCallback, addToPathCallback, endPathCallback);
   this.variables = {};
+  this.ast = [];
+  this.stack = [];
 }
 
 Logo.prototype.runInput = function (input) {
-  var tokens = this.tokenizeInput(input);
-  var tree = this.parseTokens(tokens);
-  return this.evalTree(tree);
+  var tokens = this.tokenizeInput(input)
+    , tree = this.parseTokens(tokens)
+    , token;
+  while ((token = tree.shift())) {
+    token.evaluate(tree);
+  }
 };
 
 Logo.prototype.tokenizeInput = function (input) {
@@ -119,35 +128,27 @@ Logo.prototype.parseTokens = function (tokens) {
   var token, tree = [];
   while (tokens.length) {
     token = tokens.shift();
-    switch (token.value) {
-    case '[':
-      tree.push(this.parseTokens(tokens));
-      break;
-
-    case ']':
+    if (token.value == '[') {
+      tree.push(new ListToken(this.parseTokens(tokens), token.line, this));
+    }
+    else if (token.value == ']') {
       return tree;
-
-    default:
+    }
+    else {
       if (token.value[0] == ':') {
-        token.type = 'symbol';
-        token.value = token.value.substr(1);
+        token = new SymbolToken(token.value.substr(1), token.line, this);
       }
       else if (token.value[0] == '"') {
-        token.type = 'value';
-        token.value = token.value.substr(1);
+        token = new WordToken(token.value.substr(1), token.line, this);
       }
       else if (parseInt(token.value, 10).toString() == token.value) {
-        token.type = 'value';
-        token.value = parseInt(token.value, 10);
+        token = new NumberToken(parseInt(token.value, 10), token.line, this);
       }
       else if (parseFloat(token.value).toString() == token.value) {
-        token.type = 'value';
-        token.value = parseFloat(token.value);
+        token = new NumberToken(parseFloat(token.value), token.line, this);
       }
       else {
-        token.type = 'command';
-        // Look up aliases.
-        token.command = this.commands[this.aliases[token.value] || token.value];
+        token = new CommandToken(token.value, token.line, this);
       }
       tree.push(token);
     }
@@ -155,41 +156,74 @@ Logo.prototype.parseTokens = function (tokens) {
   return tree;
 };
 
-Logo.prototype.evalTree = function (tree) {
-  var token;
-  while (tree.length) {
-    token = tree.shift();
-    if (!token.command) {
-      console.log("Unknown command " + token.value + " on line " + token.line);
-      return false;
-    }
-    this.evalToken(token, tree);
-  }
+function Token (value, line, context) {
+}
+Token.prototype.evaluate = function () {
+  return this.value;
 };
 
-Logo.prototype.evalToken = function (token, tree) {
-  // Check that the correct arguments are available.
-  var command = token.command, args = [], arg;
+function ListToken (value, line, context) {
+  this.line = line;
+  this.value = value;
+}
+ListToken.prototype = new Token();
 
+function WordToken (value, line, context) {
+  this.line = line;
+  this.value = value;
+}
+WordToken.prototype = new Token();
+
+function NumberToken (value, line, context) {
+  this.line = line;
+  this.value = value;
+}
+NumberToken.prototype = new Token();
+
+// TODO I'm not in love with the name... VariableToken maybe?
+function SymbolToken (value, line, context) {
+  this.line = line;
+  this.value = value;
+  this.context = context;
+}
+SymbolToken.prototype = new Token();
+SymbolToken.prototype.evaluate = function () {
+  return this.context.variables[this.value];
+};
+
+function CommandToken (value, line, context) {
+  this.line = line;
+  // Look up aliases.
+  this.value = context.aliases[value] || value;
+  this.command = context.commands[this.value];
+  this.context = context;
+}
+CommandToken.prototype = new Token();
+CommandToken.prototype.evaluate = function (list) {
+  // Check that the correct arguments are available.
+  var command = this.command, args = [], token;
+
+  if (!command) {
+    console.log("Unknown command " + this.value + " on line " + this.line);
+    return false;
+  }
+
+// TODO: check that there are enough args available
   for (var i = 0, l = command.args.length; i < l; i++) {
     // TODO check argument types against expected types.
-    arg = tree.shift();
-    if (arg.type == 'value') {
-      args.push(arg.value);
-    }
-    else if (arg.type == 'symbol') {
-      args.push(this.variables[arg.value]);
-    }
-    else if (arg.type == 'command') {
-      args.push(this.evalToken(arg, tree));
+    token = list.shift();
+    if (token instanceof CommandToken) {
+      args.push(token.evaluate(list));
     }
     else {
-      args.push(arg);
+      args.push(token.evaluate());
     }
   }
+
   //console.log(token.value + ": " + args);
-  return token.command.f.apply(this, args);
+  return this.command.f.apply(this.context, args);
 };
+
 
 Logo.prototype.aliases = {
   'CS': 'CLEARSCREEN',
@@ -208,35 +242,40 @@ Logo.prototype.commands = {};
 */
 // CONTROL FLOW
 Logo.prototype.commands.REPEAT = {
-  'args': ['v', 'b'],
-  'f': function (count, commands) {
-    var i;
+  'args': [NumberToken, ListToken],
+  'f': function (count, list) {
+    var copy, i, token, result;
     for (i = 0; i < count; i++) {
-      this.evalTree(commands.slice(0));
+      // Need to reuse the same tokens each time through the loop.
+      copy = list.slice(0);
+      while (copy.length) {
+        result = copy.shift().evaluate(copy);
+      }
     }
+    return result;
   }
 };
 // MOVEMENT
 Logo.prototype.commands.FORWARD = {
-  'args': ['v'],
+  'args': [NumberToken],
   'f': function (distance) {
     this.turtle.move(distance);
   }
 };
 Logo.prototype.commands.BACK = {
-  'args': ['v'],
+  'args': [NumberToken],
   'f': function (distance) {
     this.turtle.move(-distance);
   }
 };
 Logo.prototype.commands.LEFT = {
-  'args': ['v'],
+  'args': [NumberToken],
   'f': function (degrees) {
     this.turtle.rotate(-degrees);
   }
 };
 Logo.prototype.commands.RIGHT = {
-  'args': ['v'],
+  'args': [NumberToken],
   'f': function (degrees) {
     this.turtle.rotate(degrees);
   }
@@ -249,11 +288,12 @@ Logo.prototype.commands.HOME = {
 Logo.prototype.commands.CLEAN = {
   'args': [],
   'f': function() {
+// TODO: needs to go into the caller.
     var paths = document.getElementsByClassName('trail');
     while (paths.length) {
       paths[0].remove();
     }
-    this.turtle.startNewPath();
+    this.turtle.startPath();
   }
 };
 Logo.prototype.commands.CLEARSCREEN = {
@@ -272,7 +312,7 @@ Logo.prototype.commands.PENDOWN = {
   'f': function () { this.turtle.penDown(); }
 };
 Logo.prototype.commands.SETPENCOLOUR = {
-  'args': ['v'],
+  'args': [NumberToken],
   'f': function (value) {
     var palette = [
           'black', 'blue', 'green', 'cyan', 'red', 'magenta', 'yellow', 'white',
@@ -284,12 +324,12 @@ Logo.prototype.commands.SETPENCOLOUR = {
   }
 };
 Logo.prototype.commands.PRINT = {
-  'args': ['v'],
+  'args': [null],
   'f': function (arg) { console.log(arg); }
 };
 // VARIABLES
 Logo.prototype.commands.MAKE = {
-  'args': ['s', 'v'],
+  'args': [WordToken, null],
   'f': function (name, value) {
     this.variables[name] = value;
     return value;
@@ -297,34 +337,23 @@ Logo.prototype.commands.MAKE = {
 };
 // MATH
 Logo.prototype.commands.SUM = {
-  'args': ['v', 'v'],
+  'args': [NumberToken, NumberToken],
   'f': function (left, right) {
     return left + right;
   }
 };
 Logo.prototype.commands.DIFFERENCE = {
-  'args': ['v', 'v'],
+  'args': [NumberToken, NumberToken],
   'f': function (left, right) {
     return left - right;
   }
 };
 Logo.prototype.commands.MINUS = {
-  'args': ['v'],
+  'args': [NumberToken],
   'f': function (value) {
     return -value;
   }
 };
 
-(function () {
-  var con = document.getElementById('console');
-
-  con.style.width = window.innerWidth / 2 + "px";
-  con.style.height = window.innerHeight + "px";
-
-  var logo = new Logo();
-
-  document.getElementById('run').addEventListener('click', function(e) {
-    e.preventDefault();
-    logo.runInput(document.getElementById('program').value);
-  }, false);
-})();
+var module = module || {};
+module.exports = Logo;

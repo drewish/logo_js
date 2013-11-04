@@ -58,5 +58,46 @@ Repeat :radius [
     <form>
   </div>
   <script src="logo.js" type="text/javascript" charset="utf-8"></script>
+  <script>
+    (function () {
+      var con = document.getElementById('console');
+
+      con.style.width = window.innerWidth / 2 + "px";
+      con.style.height = window.innerHeight + "px";
+
+      // This is a hacky first attempt at pulling all the rendering code out of
+      // the logo library.
+      var path;
+      function updateTurtle(x, y, angle) {
+        // Headings (angles) are measured in degrees clockwise from the positive Y
+        // axis.
+        var transform = 'translate(' + x + ',' + y +') rotate(' + -angle + ')';
+        document.getElementById('turtle').setAttribute('transform', transform);
+      }
+      function createPath(x, y, color) {
+        path = document.createElementNS("http://www.w3.org/2000/svg","path");
+        path.classList.add('trail');
+        path.setAttribute('d', 'M ' + this.x + ',' + this.y);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', this.color);
+        path.setAttribute('stroke-width', 2);
+        document.getElementById('slate').appendChild(path);
+      }
+      function addToPath(dx, dy) {
+        if (path) {
+          path.setAttribute('d', path.getAttribute('d') + ' l ' + dx + ',' + dy);
+        }
+      }
+      function endPath() {
+        path = null;
+      }
+      var logo = new Logo(updateTurtle, createPath, addToPath, endPath);
+
+      document.getElementById('run').addEventListener('click', function(e) {
+        e.preventDefault();
+        logo.runInput(document.getElementById('program').value);
+      }, false);
+    })();
+  </script>
 </body>
 </html>
