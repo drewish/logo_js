@@ -1,0 +1,22 @@
+{
+  "name": "logo_js",
+  "version": "0.0.0",
+  "description": "A toy Logo interpreter written in Javascript",
+  "main": "logo.js",
+  "dependencies": {
+    "should": "~2.0.2"
+  },
+  "devDependencies": {
+    "mocha": "~1.14.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/drewish/logo_js.git"
+  },
+  "author": "andrew morton <drewish@katherinehouse.com>",
+  "license": "BSD",
+  "gitHead": "7973e4970bd32c9676fe098464ee28ad88920b35"
+}
