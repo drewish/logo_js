@@ -11,29 +11,20 @@
     }
     #canvas {
       width: 50%;
-      height: 100%;
       float: left;
     }
     #console {
-      float: left;
+      float: right;
+      height: 100%;
     }
-    #console form, #console textarea {
-      width: 100%;
-      height: 90%;
+    #console textarea {
+      font-family: "Andale Mono", Menlo, Consolas, Courier;
     }
   </style>
 </head>
 <body>
-  <svg xmlns="http://www.w3.org/2000/svg" id="canvas" align="xMidYMid" viewBox="0 0 500 500" >
-    <!-- Positive X is to the right; positive Y is up. -->
-    <g id="slate" transform="translate(250,250) scale(1,-1)">
-      <circle id="origin" cx='0' cy='0' r='3' fill='gainsboro' stroke='lightgray' />
-      <path id="turtle" d="M 00 15 L 5 0 L -5 0 z" fill="gainsboro" stroke="dimgray" stroke-width="1" />
-    </g>
-  </svg>
-  <div id="console">
-    <form>
-      <textarea id="program">; Configure the number of bands to draw.
+  <form id="console">
+    <textarea id="program" rows="30" cols="80">; Configure the number of bands to draw.
 Make "radius 6
 Make "count 0
 CS
@@ -53,10 +44,17 @@ Repeat :radius [
   PenUp Left 120 Repeat 2 [ Forward 20 Right 60 ] PenDown
   Make "count SUM :count 1
 ]
-      </textarea>
-      <a id="run" href="#">Run</a>
-    <form>
-  </div>
+    </textarea>
+    <div><a id="run" href="#">Run</a></div>
+  </form>
+  <svg xmlns="http://www.w3.org/2000/svg" id="canvas" align="xMidYMid" viewBox="0 0 400 400" >
+    <!-- Move to the center and flip Y axis so positive Y is up. -->
+    <g id="slate" transform="translate(200,200) scale(1,-1)">
+      <circle id="origin" cx='0' cy='0' r='3' fill='gainsboro' stroke='lightgray' />
+      <path id="turtle" d="M 00 15 L 5 0 L -5 0 z" fill="black" fill-opacity="0.4"
+        stroke="dimgray" stroke-opacity="0.8" stroke-width="1" />
+    </g>
+  </svg>
   <script src="logo.js" type="text/javascript" charset="utf-8"></script>
   <script>
     // var con = document.getElementById('console');
