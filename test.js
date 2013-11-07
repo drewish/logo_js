@@ -33,6 +33,11 @@ describe('Logo', function () {
         logo.runInput('make "foo 0 repeat 3 [ make "foo sum :foo 1 ]');
         logo.variables.FOO.should.equal(3);
       });
+      it('runs a nested blocks correctly times', function() {
+        logo.runInput('make "out 0 make "in 0 repeat 3 [ repeat 2 [ make "in sum :in 1 ] make "out sum :out 1 ]');
+        logo.variables.OUT.should.equal(3);
+        logo.variables.IN.should.equal(6);
+      });
     });
   });
 

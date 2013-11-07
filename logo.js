@@ -251,6 +251,9 @@ CommandToken.prototype.evaluate = function (list) {
 Logo.prototype.aliases = {
   'CS': 'CLEARSCREEN',
   'FD': 'FORWARD',
+  'BK': 'BACKWARD',
+  'RT': 'RIGHT',
+  'LT': 'LEFT',
   'PU': 'PENUP',
   'PD': 'PENDOWN',
 };
