@@ -1,32 +1,30 @@
 /* jshint laxcomma: true */
 
-function Turtle(turtleCallback, startPathCallback, addToPathCallback, endPathCallback) {
-  this.updateCallback = turtleCallback;
-  this.startPathCallback = startPathCallback;
-  this.addToPathCallback = addToPathCallback;
-  this.endPathCallback = endPathCallback;
+function Turtle(emitter) {
+  this.emitter = emitter;
   this.color = 'black';
   this.drawing = true;
   this.goHome();
   this.startPath();
 }
 
-Turtle.prototype.startPath = function() {
-  if (this.drawing && this.startPathCallback) {
+Turtle.prototype.startPath = function () {
+  if (this.drawing) {
     // TODO we should avoid starting new paths if we didn't move in our old one.
-    this.startPathCallback(this.x, this.y, this.color);
+    var info = { x: this.x, y: this.y, color: this.color };
+    this.emitter.trigger('path.start', info);
   }
 };
 
-Turtle.prototype.endPath = function() {
-  if (this.drawing && this.endPathCallback) {
-    this.endPathCallback();
+Turtle.prototype.endPath = function () {
+  if (this.drawing) {
+    this.emitter.trigger('path.end');
   }
 };
 
 Turtle.prototype.penUp = function () {
-  this.drawing = false;
   this.endPath();
+  this.drawing = false;
 };
 
 Turtle.prototype.penDown = function () {
@@ -39,11 +37,13 @@ Turtle.prototype.penDown = function () {
 Turtle.prototype.penColor = function (color) {
   if (this.color != color) {
     this.color = color;
+    this.endPath();
     this.startPath();
+    this.update();
   }
 };
 
-Turtle.prototype.goHome = function() {
+Turtle.prototype.goHome = function () {
   this.endPath();
   this.x = 0;
   this.y = 0;
@@ -57,8 +57,8 @@ Turtle.prototype.move = function(distance) {
     , dx = distance * Math.sin(rads)
     , dy = distance * Math.cos(rads)
     ;
-  if (this.drawing && this.addToPathCallback) {
-    this.addToPathCallback(dx, dy);
+  if (this.drawing) {
+    this.emitter.trigger('path.delta', { dx: dx, dy: dy });
   }
   this.x += dx;
   this.y += dy;
@@ -71,20 +71,43 @@ Turtle.prototype.rotate = function(degrees) {
 };
 
 Turtle.prototype.update = function () {
-  if (this.updateCallback) {
-    this.updateCallback(this.x, this.y, this.angle);
-  }
+  this.emitter.trigger('turtle.change', this);
 };
+
 
 // * * *
 
+
 // TODO: these callbacks are silly.
-function Logo(turtleCallback, startPathCallback, addToPathCallback, endPathCallback) {
-  this.turtle = new Turtle(turtleCallback, startPathCallback, addToPathCallback, endPathCallback);
+function Logo() {
+  this.events = {};
   this.variables = {};
   this.ast = [];
   this.stack = [];
+  this.turtle = new Turtle(this);
 }
+
+// Micro event emitter
+Logo.prototype.on = function(event, callback) {
+  this.events[event] = this.events[event] || [];
+  this.events[event].push(callback);
+  return this;
+};
+Logo.prototype.off = function(event, callback) {
+  this.events[event] = this.events[event] || [];
+  if (event in this.events) {
+    this.events[event].splice(this.events[event].indexOf(callback), 1);
+  }
+  return this;
+};
+Logo.prototype.trigger = function(event /* ...args */) {
+  if (event in this.events) {
+    for (var i = 0, len = this.events[event].length; i < len; i++) {
+      this.events[event][i].apply(this, Array.prototype.slice.call(arguments, 1));
+    }
+  }
+  return this;
+};
 
 Logo.prototype.runInput = function (input) {
   var tokens = this.tokenizeInput(input)
@@ -283,22 +306,18 @@ Logo.prototype.commands.RIGHT = {
 // DISPLAY
 Logo.prototype.commands.HOME = {
   'args': [],
-  'f': function() { this.turtle.goHome(); }
+  'f': function () { this.turtle.goHome(); }
 };
 Logo.prototype.commands.CLEAN = {
   'args': [],
-  'f': function() {
-// TODO: needs to go into the caller.
-    var paths = document.getElementsByClassName('trail');
-    while (paths.length) {
-      paths[0].remove();
-    }
+  'f': function () {
+    this.trigger('path.remove_all');
     this.turtle.startPath();
   }
 };
 Logo.prototype.commands.CLEARSCREEN = {
   'args': [],
-  'f': function() {
+  'f': function () {
     this.commands.CLEAN.f.apply(this);
     this.commands.HOME.f.apply(this);
   }
