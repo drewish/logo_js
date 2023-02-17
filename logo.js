@@ -376,6 +376,18 @@ Logo.prototype.commands.MINUS = {
     return -value;
   }
 };
+Logo.prototype.commands.PRODUCT = {
+  'args': [NumberToken, NumberToken],
+  'f': function (left, right) {
+    return left * right;
+  }
+};
+Logo.prototype.commands.QUOTIENT = {
+  'args': [NumberToken, NumberToken],
+  'f': function (left, right) {
+    return left / right;
+  }
+};
 
 var module = module || {};
 module.exports = Logo;
