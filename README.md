@@ -8,7 +8,7 @@ conventions of Berkeley Logo.
 
 ## Reference material
 
-[Berkeley Logo User Manual](ftp://anarres.cs.berkeley.edu/pub/ucblogo/usermanual)
-[ACSLogo Manual](http://www.alancsmith.co.uk/logo/LogoUserGuide151.pdf)
+- [Berkeley Logo User Manual](https://people.eecs.berkeley.edu/~bh/docs/html/usermanual.html)
+- [ACSLogo Manual](http://www.alancsmith.co.uk/logo/LogoUserGuide151.pdf)
 
 [![Build Status](https://travis-ci.org/drewish/logo_js.png?branch=gh-pages)](https://travis-ci.org/drewish/logo_js)
