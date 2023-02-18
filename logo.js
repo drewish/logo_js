@@ -88,6 +88,75 @@ Turtle.prototype.update = function () {
 
 // * * *
 
+function Token (value, line, context) {
+}
+Token.prototype.evaluate = function () {
+  return this.value;
+};
+
+function ListToken (value, line, context) {
+  this.line = line;
+  this.value = value;
+}
+ListToken.prototype = new Token();
+
+function WordToken (value, line, context) {
+  this.line = line;
+  this.value = value;
+}
+WordToken.prototype = new Token();
+
+function NumberToken (value, line, context) {
+  this.line = line;
+  this.value = value;
+}
+NumberToken.prototype = new Token();
+
+// TODO I'm not in love with the name... VariableToken maybe?
+function SymbolToken (value, line, context) {
+  this.line = line;
+  this.value = value;
+  this.context = context;
+}
+SymbolToken.prototype = new Token();
+SymbolToken.prototype.evaluate = function () {
+  return this.context.variables[this.value];
+};
+
+function CommandToken (value, line, context) {
+  this.line = line;
+  // Look up aliases.
+  this.value = context.aliases[value] || value;
+  this.command = context.commands[this.value];
+  this.context = context;
+}
+CommandToken.prototype = new Token();
+CommandToken.prototype.evaluate = function (list) {
+  // Check that the correct arguments are available.
+  var command = this.command, args = [], token;
+
+  if (!command) {
+    console.log("Unknown command " + this.value + " on line " + this.line);
+    return false;
+  }
+
+// TODO: check that there are enough args available
+  for (var i = 0, l = command.args.length; i < l; i++) {
+    // TODO check argument types against expected types.
+    token = list.shift();
+    if (token instanceof CommandToken) {
+      args.push(token.evaluate(list));
+    }
+    else {
+      args.push(token.evaluate());
+    }
+  }
+
+  //console.log(token.value + ": " + args);
+  return this.command.f.apply(this.context, args);
+};
+
+// * * *
 
 // TODO: these callbacks are silly.
 function Logo() {
@@ -189,75 +258,6 @@ Logo.prototype.parseTokens = function (tokens) {
   }
   return tree;
 };
-
-function Token (value, line, context) {
-}
-Token.prototype.evaluate = function () {
-  return this.value;
-};
-
-function ListToken (value, line, context) {
-  this.line = line;
-  this.value = value;
-}
-ListToken.prototype = new Token();
-
-function WordToken (value, line, context) {
-  this.line = line;
-  this.value = value;
-}
-WordToken.prototype = new Token();
-
-function NumberToken (value, line, context) {
-  this.line = line;
-  this.value = value;
-}
-NumberToken.prototype = new Token();
-
-// TODO I'm not in love with the name... VariableToken maybe?
-function SymbolToken (value, line, context) {
-  this.line = line;
-  this.value = value;
-  this.context = context;
-}
-SymbolToken.prototype = new Token();
-SymbolToken.prototype.evaluate = function () {
-  return this.context.variables[this.value];
-};
-
-function CommandToken (value, line, context) {
-  this.line = line;
-  // Look up aliases.
-  this.value = context.aliases[value] || value;
-  this.command = context.commands[this.value];
-  this.context = context;
-}
-CommandToken.prototype = new Token();
-CommandToken.prototype.evaluate = function (list) {
-  // Check that the correct arguments are available.
-  var command = this.command, args = [], token;
-
-  if (!command) {
-    console.log("Unknown command " + this.value + " on line " + this.line);
-    return false;
-  }
-
-// TODO: check that there are enough args available
-  for (var i = 0, l = command.args.length; i < l; i++) {
-    // TODO check argument types against expected types.
-    token = list.shift();
-    if (token instanceof CommandToken) {
-      args.push(token.evaluate(list));
-    }
-    else {
-      args.push(token.evaluate());
-    }
-  }
-
-  //console.log(token.value + ": " + args);
-  return this.command.f.apply(this.context, args);
-};
-
 
 Logo.prototype.aliases = {
   'CS': 'CLEARSCREEN',
