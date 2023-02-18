@@ -13,7 +13,7 @@ class Turtle {
   startPath() {
     if (this.drawing) {
       // TODO we should avoid starting new paths if we didn't move in our old one.
-      var info = { x: this.x, y: this.y, color: this.color };
+      const info = { x: this.x, y: this.y, color: this.color };
       this.emitter.trigger('path.start', info);
     }
   }
@@ -113,7 +113,7 @@ class SymbolToken extends Token {
     this.context = context;
   }
   evaluate() {
-    return this.context.variables[this.value];
+    return this.context.variables.get(this.value);
   };
 };
 
@@ -128,17 +128,17 @@ class CommandToken extends Token {
   }
   evaluate(list) {
     // Check that the correct arguments are available.
-    var command = this.command, args = [], token;
+    const args = [];
 
-    if (!command) {
+    if (!this.command) {
       console.log("Unknown command " + this.value + " on line " + this.line);
       return false;
     }
 
     // TODO: check that there are enough args available
-    for (var i = 0, l = command.args.length; i < l; i++) {
+    for (let i = 0, l = this.command.args.length; i < l; i++) {
       // TODO check argument types against expected types.
-      token = list.shift();
+      const token = list.shift();
       if (token instanceof CommandToken) {
         args.push(token.evaluate(list));
       }
@@ -156,8 +156,8 @@ class CommandToken extends Token {
 
 class Logo {
   constructor() {
-    this.events = {};
-    this.variables = {};
+    this.events = new Map();
+    this.variables = new Map();
     this.ast = [];
     this.stack = [];
     this.turtle = new Turtle(this);
@@ -165,42 +165,35 @@ class Logo {
 
   // Micro event emitter
   on(event, callback) {
-    this.events[event] = this.events[event] || [];
-    this.events[event].push(callback);
-    return this;
-  };
-  off(event, callback) {
-    this.events[event] = this.events[event] || [];
-    if (event in this.events) {
-      this.events[event].splice(this.events[event].indexOf(callback), 1);
+    if (!this.events.has(event)) {
+      this.events.set(event, [callback]);
+    } else {
+      this.events.get(event).push(callback);
     }
     return this;
   };
   trigger(event /* ...args */) {
-    if (event in this.events) {
-      for (var i = 0, len = this.events[event].length; i < len; i++) {
-        this.events[event][i].apply(this, Array.prototype.slice.call(arguments, 1));
-      }
+    for (const callback of this.events.get(event) ?? []) {
+      callback.apply(this, Array.prototype.slice.call(arguments, 1));
     }
     return this;
   };
 
   runInput(input) {
-    var tokens = this.tokenizeInput(input)
-      , tree = this.parseTokens(tokens)
-      , token;
-    while ((token = tree.shift())) {
+    const tokens = this.tokenizeInput(input),
+      tree = this.parseTokens(tokens);
+    let token;
+    while (token = tree.shift()) {
       token.evaluate(tree);
     }
   };
 
   tokenizeInput(input) {
-    var lines = input.split(/\n/g)
-      , tokens = []
-      , words, i, j, ll, wl;
+    const lines = input.split(/\n/g),
+      tokens = [];
 
-    for (i = 0, ll = lines.length; i < ll; i++) {
-      words = lines[i]
+    for (const [lineNumber, line] of lines.entries()) {
+      const words = line
         // Remove comments (semi-colon to end of line).
         .replace(/;.*?$/, '')
         // Add whitespace around square brackets so they split correctly.
@@ -210,11 +203,11 @@ class Logo {
         .trim()
         // Split by white space.
         .split(/\s+/);
-      for (j = 0, wl = words.length; j < wl; j++) {
-        if (words[j]) {
+      for (const word of words) {
+        if (word) {
           tokens.push({
-            line: i + 1,
-            value: words[j].toUpperCase()
+            line: lineNumber + 1,
+            value: word.toUpperCase()
           });
         }
       }
@@ -224,7 +217,7 @@ class Logo {
   };
 
   parseTokens(tokens) {
-    var token, tree = [];
+    let token, tree = [];
     while (tokens.length) {
       token = tokens.shift();
       if (token.value == '[') {
@@ -273,10 +266,10 @@ class Logo {
     'REPEAT': {
       'args': [NumberToken, ListToken],
       'f': function (count, list) {
-        var copy, i, token, result;
-        for (i = 0; i < count; i++) {
+        let result;
+        for (let i = 0; i < count; i++) {
           // Need to reuse the same tokens each time through the loop.
-          copy = list.slice(0);
+          const copy = list.slice(0);
           while (copy.length) {
             result = copy.shift().evaluate(copy);
           }
@@ -349,10 +342,10 @@ class Logo {
     'SETPENCOLOUR': {
       'args': [NumberToken],
       'f': function (value) {
-        var palette = [
-              'black', 'blue', 'green', 'cyan', 'red', 'magenta', 'yellow', 'white',
-              'brown', 'tan', 'forest', 'aqua', 'salmon', 'purple', 'orange', 'grey'
-            ];
+        const palette = [
+          'black', 'blue', 'green', 'cyan', 'red', 'magenta', 'yellow', 'white',
+          'brown', 'tan', 'forest', 'aqua', 'salmon', 'purple', 'orange', 'grey'
+        ];
         if (palette[value]) {
           this.turtle.penColor(palette[value]);
         } else {
@@ -369,7 +362,7 @@ class Logo {
     'MAKE': {
       'args': [WordToken, null],
       'f': function (name, value) {
-        this.variables[name] = value;
+        this.variables.set(name, value);
         return value;
       }
     },
@@ -408,5 +401,13 @@ class Logo {
   };
 }
 
-var module = module || {};
-module.exports = Logo;
+module.exports = {
+  Turtle,
+  Logo,
+  Token,
+  ListToken,
+  WordToken,
+  NumberToken,
+  SymbolToken,
+  CommandToken,
+};
