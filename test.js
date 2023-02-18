@@ -19,36 +19,46 @@ describe('Logo', function () {
       });
     });
 
-    describe('sum', function() {
-      it('adds numbers', function() {
-        logo.runInput('make "baz sum 1 3');
-        logo.variables.BAZ.should.equal(4);
+    describe('math', function() {
+      describe('sum', function() {
+        it('adds numbers', function() {
+          logo.runInput('make "baz sum 1 3');
+          logo.variables.BAZ.should.equal(4);
+        });
+        it('adds variable to number', function() {
+          logo.runInput('make "foo 3 make "baz sum :foo 5');
+          logo.variables.BAZ.should.equal(8);
+        });
       });
-      it('adds variable to number', function() {
-        logo.runInput('make "foo 3 make "baz sum :foo 5');
-        logo.variables.BAZ.should.equal(8);
+
+      describe('product', function() {
+        it('multiplies numbers', function() {
+          logo.runInput('make "baz product 3 9');
+          logo.variables.BAZ.should.equal(27);
+        });
+      });
+
+      describe('quotient', function() {
+        it('divides numbers', function() {
+          logo.runInput('make "baz quotient 27 3');
+          logo.variables.BAZ.should.equal(9);
+        });
       });
     });
 
-    describe('product', function() {
-      it('adds numbers', function() {
-        logo.runInput('make "baz product 3 9');
-        logo.variables.BAZ.should.equal(27);
+    describe('display', function() {
+      describe('showturtle', function() {
+        it('shows', function() {
+          logo.runInput('showturtle');
+          logo.turtle.visible.should.equal(true)
+        });
       });
-      it('adds variable to number', function() {
-        logo.runInput('make "foo 3 make "baz product :foo 5');
-        logo.variables.BAZ.should.equal(15);
-      });
-    });
 
-    describe('quotient', function() {
-      it('adds numbers', function() {
-        logo.runInput('make "baz quotient 27 3');
-        logo.variables.BAZ.should.equal(9);
-      });
-      it('adds variable to number', function() {
-        logo.runInput('make "foo 9 make "baz quotient :foo 3');
-        logo.variables.BAZ.should.equal(3);
+      describe('hideturtle', function() {
+        it('hides', function() {
+          logo.runInput('hideturtle');
+          logo.turtle.visible.should.equal(false)
+        });
       });
     });
 
@@ -64,5 +74,4 @@ describe('Logo', function () {
       });
     });
   });
-
 });

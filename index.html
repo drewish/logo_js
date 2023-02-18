@@ -73,6 +73,7 @@ Repeat :radius [
         t.setAttribute('transform', transform);
         t.setAttribute('fill', turtle.color);
         t.setAttribute('stroke', turtle.color);
+        t.setAttribute('visibility', turtle.visible ? 'visible' : 'hidden')
       })
       .on('path.start', function(info) {
         path = document.createElementNS("http://www.w3.org/2000/svg","path");

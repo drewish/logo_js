@@ -1,6 +1,7 @@
 /* jshint laxcomma: true */
 
 function Turtle(emitter) {
+  this.visible = true;
   this.emitter = emitter;
   this.color = 'black';
   this.drawing = true;
@@ -67,6 +68,16 @@ Turtle.prototype.move = function(distance) {
 
 Turtle.prototype.rotate = function(degrees) {
   this.angle = (this.angle + degrees) % 360;
+  this.update();
+};
+
+Turtle.prototype.show = function() {
+  this.visible = true;
+  this.update();
+};
+
+Turtle.prototype.hide = function() {
+  this.visible = false;
   this.update();
 };
 
@@ -256,6 +267,9 @@ Logo.prototype.aliases = {
   'LT': 'LEFT',
   'PU': 'PENUP',
   'PD': 'PENDOWN',
+  'ST': 'SHOWTURTLE',
+  'HT': 'HIDETURTLE',
+  'SETPENCOLOR': 'SETPENCOLOUR'
 };
 
 Logo.prototype.commands = {};
@@ -324,6 +338,14 @@ Logo.prototype.commands.CLEARSCREEN = {
     this.commands.CLEAN.f.apply(this);
     this.commands.HOME.f.apply(this);
   }
+};
+Logo.prototype.commands.SHOWTURTLE = {
+  'args': [],
+  'f': function() { this.turtle.show(); },
+};
+Logo.prototype.commands.HIDETURTLE = {
+  'args': [],
+  'f': function() { this.turtle.hide(); },
 };
 Logo.prototype.commands.PENUP = {
   'args': [],
