@@ -2,16 +2,18 @@
 /* jshint laxcomma: true */
 
 class Turtle {
+  #x = 0;
+  #y = 0;
+  #angle = 0;
+  #visible = true;
+  #color = 'black';
+
   /**
    * @param {Logo} emitter
    */
   constructor(emitter) {
-    this.visible = true;
     this.emitter = emitter;
-    this.color = 'black';
-    this.drawing = true;
-    this.goHome();
-    this.startPath();
+    this.penDown();
   }
 
   startPath() {
@@ -40,55 +42,103 @@ class Turtle {
     }
   };
 
-  penColor(color) {
-    if (this.color != color) {
-      this.color = color;
-      this.endPath();
-      this.startPath();
-      this.update();
+  get color() {
+    return this.#color;
+  }
+
+  set color(color) {
+    if (this.#color == color) {
+      return;
     }
+    this.#color = color;
+    this.endPath();
+    this.startPath();
+    this.update();
   };
 
-  goHome() {
-    this.endPath();
-    this.x = 0;
-    this.y = 0;
-    this.angle = 0;
+  get x() {
+    return this.#x;
+  }
+
+  get y() {
+    return this.#y;
+  }
+
+  /**
+   * @param {number} x
+   * @param {number} y
+   */
+  setpos(x, y) {
+    const dx = x - this.#x,
+      dy = y - this.#y;
+    if (dx == 0 && dy == 0) {
+      return;
+    }
+    this.#x = x;
+    this.#y = y;
+    if (this.drawing) {
+      this.emitter.trigger('path.delta', { dx, dy });
+    }
     this.update();
-    this.startPath();
-  };
+  }
 
   /**
    * @param {number} distance
    */
   move(distance) {
-    const rads = this.angle * Math.PI / 180
-      , dx = distance * Math.sin(rads)
-      , dy = distance * Math.cos(rads)
-      ;
-    if (this.drawing) {
-      this.emitter.trigger('path.delta', { dx: dx, dy: dy });
+    const rads = this.angle * Math.PI / 180,
+      dx = distance * Math.sin(rads),
+      dy = distance * Math.cos(rads);
+    if (dx == 0 && dy == 0) {
+      return;
     }
-    this.x += dx;
-    this.y += dy;
+    this.#x += dx;
+    this.#y += dy;
+    if (this.drawing) {
+      this.emitter.trigger('path.delta', { dx, dy });
+    }
     this.update();
   };
+
+  get angle() {
+    return this.#angle;
+  }
+
+  /**
+   * @param {number} degrees
+   */
+  set angle(degrees) {
+    if (this.#angle == degrees) {
+      return;
+    }
+    this.#angle = degrees;
+    this.update();
+  }
 
   /**
    * @param {number} degrees
    */
   rotate(degrees) {
     this.angle = (this.angle + degrees) % 360;
-    this.update();
   };
 
+  get visible() {
+    return this.#visible;
+  }
+
   show() {
-    this.visible = true;
+    if (this.#visible == true) {
+      return;
+    }
+    this.#visible = true;
     this.update();
   };
 
   hide() {
-    this.visible = false;
+    if (this.#visible == false) {
+      return;
+    }
+    this.#visible = false;
     this.update();
   };
 
@@ -333,11 +383,26 @@ class Logo {
         'args': [NumberToken],
         'f': (degrees) => this.turtle.rotate(degrees),
       },
+      'SETX': {
+        'args': [NumberToken],
+        'f': (x) => this.turtle.setpos(x, this.turtle.y),
+      },
+      'SETY': {
+        'args': [NumberToken],
+        'f': (y) => this.turtle.setpos(this.turtle.x, y),
+      },
+      'SETXY': {
+        'args': [NumberToken, NumberToken],
+        'f': (x, y) => this.turtle.setpos(x, y),
+      },
 
       // DISPLAY
       'HOME': {
         'args': [],
-        'f': () => { this.turtle.goHome(); }
+        'f': () => {
+          this.turtle.setpos(0, 0);
+          this.turtle.angle = 0;
+        }
       },
       'CLEAN': {
         'args': [],
@@ -379,7 +444,7 @@ class Logo {
             'salmon', 'purple', 'orange', 'grey'
           ];
           if (palette[value]) {
-            this.turtle.penColor(palette[value]);
+            this.turtle.color = palette[value];
           } else {
             // TODO log an error?
           }

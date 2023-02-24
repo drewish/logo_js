@@ -78,6 +78,55 @@ describe('Logo', () => {
     });
 
     describe('display', () => {
+      describe('setx', () => {
+        it('moves', () => {
+          logo.runInput('setx 100');
+          logo.turtle.x.should.equal(100);
+          logo.runInput('setx 10');
+          logo.turtle.x.should.equal(10);
+        });
+      });
+
+      describe('sety', () => {
+        it('moves', () => {
+          logo.runInput('sety 200');
+          logo.turtle.y.should.equal(200);
+          logo.runInput('sety 20');
+          logo.turtle.y.should.equal(20);
+        });
+      });
+
+      describe('setxy', () => {
+        it('moves', () => {
+          logo.runInput('SETXY -100 -200');
+          logo.turtle.x.should.equal(-100);
+          logo.turtle.y.should.equal(-200);
+          logo.runInput('setxy 20 39');
+          logo.turtle.x.should.equal(20);
+          logo.turtle.y.should.equal(39);
+        });
+      });
+
+      describe('home', () => {
+        it('moves', () => {
+          logo.turtle.setpos(1, 2);
+          logo.turtle.angle = 3
+          logo.runInput('home');
+          logo.turtle.x.should.equal(0);
+          logo.turtle.y.should.equal(0);
+          logo.turtle.angle.should.equal(0);
+        });
+      });
+
+      describe('setpencolor', () => {
+        it('colorizes', () => {
+          logo.runInput('SetPenColour 0');
+          logo.turtle.color.should.equal('black');
+          logo.runInput('SetPenColor 1');
+          logo.turtle.color.should.equal('blue');
+        });
+      });
+
       describe('showturtle', () => {
         it('shows', () => {
           logo.runInput('showturtle');
