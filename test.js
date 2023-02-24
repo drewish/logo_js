@@ -19,7 +19,7 @@ describe('Logo', () => {
   });
 
   describe('#parseTokens', () => {
-    it('handles nested lists', () => {
+    it('nests the contents of lists', () => {
       const tokens = [
         { line: 1, value: '[' },
         { line: 2, value: '10' },
@@ -89,6 +89,20 @@ describe('Logo', () => {
         it('hides', () => {
           logo.runInput('hideturtle');
           logo.turtle.visible.should.equal(false)
+        });
+      });
+
+      describe('clearscreen', () => {
+        it('goes home', () => {
+          logo.turtle.x = 100;
+          logo.turtle.y = 20;
+          logo.turtle.angle = 99;
+
+          logo.runInput('clearscreen');
+
+          logo.turtle.x.should.equal(0);
+          logo.turtle.y.should.equal(0);
+          logo.turtle.angle.should.equal(0);
         });
       });
     });

@@ -1,6 +1,10 @@
+// @ts-check
 /* jshint laxcomma: true */
 
 class Turtle {
+  /**
+   * @param {Logo} emitter
+   */
   constructor(emitter) {
     this.visible = true;
     this.emitter = emitter;
@@ -54,6 +58,9 @@ class Turtle {
     this.startPath();
   };
 
+  /**
+   * @param {number} distance
+   */
   move(distance) {
     const rads = this.angle * Math.PI / 180
       , dx = distance * Math.sin(rads)
@@ -67,6 +74,9 @@ class Turtle {
     this.update();
   };
 
+  /**
+   * @param {number} degrees
+   */
   rotate(degrees) {
     this.angle = (this.angle + degrees) % 360;
     this.update();
@@ -91,7 +101,11 @@ class Turtle {
 // * * *
 
 class Token {
-  constructor(value, line, context) {
+  /**
+   * @param {any} value
+   * @param {number | undefined} line
+   */
+  constructor(value, line) {
     this.line = line;
     this.value = value;
   }
@@ -107,9 +121,14 @@ class WordToken extends Token {}
 class NumberToken extends Token {}
 
 // TODO I'm not in love with the name... VariableToken maybe?
-class SymbolToken extends Token {
+class VariableToken extends Token {
+  /**
+   * @param {any} value
+   * @param {number | undefined} line
+   * @param {Logo} context
+   */
   constructor(value, line, context) {
-    super(value, line, context);
+    super(value, line);
     this.context = context;
   }
   evaluate() {
@@ -118,11 +137,16 @@ class SymbolToken extends Token {
 };
 
 class CommandToken extends Token {
+  /**
+   * @param {string} value
+   * @param {number | undefined} line
+   * @param {Logo} context
+   */
   constructor(value, line, context) {
-    super(value, line, context);
+    super(value, line);
 
     // Look up aliases.
-    this.value = context.aliases[value] || value;
+    this.value = context.aliases[value] ?? value;
     this.command = context.commands[this.value];
     this.context = context;
   }
@@ -131,7 +155,7 @@ class CommandToken extends Token {
     const args = [];
 
     if (!this.command) {
-      console.log("Unknown command " + this.value + " on line " + this.line);
+      console.log(`Unknown command ${this.value} on line ${this.line}`);
       return false;
     }
 
@@ -158,12 +182,16 @@ class Logo {
   constructor() {
     this.events = new Map();
     this.variables = new Map();
-    this.ast = [];
     this.stack = [];
     this.turtle = new Turtle(this);
+    this.commands = this.builtInCommands();
   }
 
   // Micro event emitter
+  /**
+   * @param {string} event
+   * @param {any} callback
+   */
   on(event, callback) {
     if (!this.events.has(event)) {
       this.events.set(event, [callback]);
@@ -172,13 +200,19 @@ class Logo {
     }
     return this;
   };
-  trigger(event /* ...args */) {
+  /**
+   * @param {string} event
+   */
+  trigger(event, /* ...args */) {
     for (const callback of this.events.get(event) ?? []) {
       callback.apply(this, Array.prototype.slice.call(arguments, 1));
     }
     return this;
   };
 
+  /**
+   * @param {string} input
+   */
   runInput(input) {
     const tokens = this.tokenizeInput(input),
       tree = this.parseTokens(tokens);
@@ -188,6 +222,9 @@ class Logo {
     }
   };
 
+  /**
+   * @param {string} input
+   */
   tokenizeInput(input) {
     const lines = input.split(/\n/g),
       tokens = [];
@@ -216,28 +253,28 @@ class Logo {
     return tokens;
   };
 
-  parseTokens(tokens) {
+  parseTokens(tokens, level = 0) {
     let token, tree = [];
     while (tokens.length) {
       token = tokens.shift();
       if (token.value == '[') {
-        tree.push(new ListToken(this.parseTokens(tokens), token.line, this));
+        tree.push(new ListToken(this.parseTokens(tokens, level + 1), token.line));
       }
       else if (token.value == ']') {
         return tree;
       }
       else {
         if (token.value[0] == ':') {
-          token = new SymbolToken(token.value.substr(1), token.line, this);
+          token = new VariableToken(token.value.substr(1), token.line, this);
         }
         else if (token.value[0] == '"') {
-          token = new WordToken(token.value.substr(1), token.line, this);
+          token = new WordToken(token.value.substr(1), token.line);
         }
         else if (parseInt(token.value, 10).toString() == token.value) {
-          token = new NumberToken(parseInt(token.value, 10), token.line, this);
+          token = new NumberToken(parseInt(token.value, 10), token.line);
         }
         else if (parseFloat(token.value).toString() == token.value) {
-          token = new NumberToken(parseFloat(token.value), token.line, this);
+          token = new NumberToken(parseFloat(token.value), token.line);
         }
         else {
           token = new CommandToken(token.value, token.line, this);
@@ -261,146 +298,133 @@ class Logo {
     'SETPENCOLOR': 'SETPENCOLOUR'
   };
 
-  commands = {
-    // CONTROL FLOW
-    'REPEAT': {
-      'args': [NumberToken, ListToken],
-      'f': function (count, list) {
-        let result;
-        for (let i = 0; i < count; i++) {
-          // Need to reuse the same tokens each time through the loop.
-          const copy = list.slice(0);
-          while (copy.length) {
-            result = copy.shift().evaluate(copy);
+  builtInCommands() {
+    return {
+      // CONTROL FLOW
+      'REPEAT': {
+        'args': [NumberToken, ListToken],
+        'f': (count, list) => {
+          let result;
+          for (let i = 0; i < count; i++) {
+            // Need to reuse the same tokens each time through the loop.
+            const copy = list.slice(0);
+            while (copy.length) {
+              result = copy.shift().evaluate(copy);
+            }
+          }
+          return result;
+        }
+      },
+
+      // MOVEMENT
+      'FORWARD': {
+        'args': [NumberToken],
+        'f': (distance) => this.turtle.move(distance),
+      },
+      'BACK': {
+        'args': [NumberToken],
+        'f': (distance) => this.turtle.move(-distance),
+      },
+      'LEFT': {
+        'args': [NumberToken],
+        'f': (degrees) => this.turtle.rotate(-degrees),
+      },
+      'RIGHT': {
+        'args': [NumberToken],
+        'f': (degrees) => this.turtle.rotate(degrees),
+      },
+
+      // DISPLAY
+      'HOME': {
+        'args': [],
+        'f': () => { this.turtle.goHome(); }
+      },
+      'CLEAN': {
+        'args': [],
+        'f': () => {
+          this.trigger('path.remove_all');
+          this.turtle.startPath();
+        }
+      },
+      'CLEARSCREEN': {
+        'args': [],
+        'f': () => {
+          this.commands.CLEAN.f.apply(this);
+          this.commands.HOME.f.apply(this);
+        }
+      },
+      'SHOWTURTLE': {
+        'args': [],
+        'f': () => this.turtle.show(),
+      },
+      'HIDETURTLE': {
+        'args': [],
+        'f': () => this.turtle.hide(),
+      },
+      'PENUP': {
+        'args': [],
+        'f': () => this.turtle.penUp(),
+      },
+      'PENDOWN': {
+        'args': [],
+        'f': () => this.turtle.penDown(),
+      },
+      'SETPENCOLOUR': {
+        'args': [NumberToken],
+        'f': (value) => {
+          const palette = [
+            'black', 'blue', 'green', 'cyan',
+            'red', 'magenta', 'yellow', 'white',
+            'brown', 'tan', 'forest', 'aqua',
+            'salmon', 'purple', 'orange', 'grey'
+          ];
+          if (palette[value]) {
+            this.turtle.penColor(palette[value]);
+          } else {
+            // TODO log an error?
           }
         }
-        return result;
-      }
-    },
+      },
+      'PRINT': {
+        'args': [null],
+        'f': console.log,
+      },
 
-    // MOVEMENT
-    'FORWARD': {
-      'args': [NumberToken],
-      'f': function (distance) {
-        this.turtle.move(distance);
-      }
-    },
-    'BACK': {
-      'args': [NumberToken],
-      'f': function (distance) {
-        this.turtle.move(-distance);
-      }
-    },
-    'LEFT': {
-      'args': [NumberToken],
-      'f': function (degrees) {
-        this.turtle.rotate(-degrees);
-      }
-    },
-    'RIGHT': {
-      'args': [NumberToken],
-      'f': function (degrees) {
-        this.turtle.rotate(degrees);
-      }
-    },
-
-    // DISPLAY
-    'HOME': {
-      'args': [],
-      'f': function () { this.turtle.goHome(); }
-    },
-    'CLEAN': {
-      'args': [],
-      'f': function () {
-        this.trigger('path.remove_all');
-        this.turtle.startPath();
-      }
-    },
-    'CLEARSCREEN': {
-      'args': [],
-      'f': function () {
-        this.commands.CLEAN.f.apply(this);
-        this.commands.HOME.f.apply(this);
-      }
-    },
-    'SHOWTURTLE': {
-      'args': [],
-      'f': function() { this.turtle.show(); },
-    },
-    'HIDETURTLE': {
-      'args': [],
-      'f': function() { this.turtle.hide(); },
-    },
-    'PENUP': {
-      'args': [],
-      'f': function () { this.turtle.penUp(); }
-    },
-    'PENDOWN': {
-      'args': [],
-      'f': function () { this.turtle.penDown(); }
-    },
-    'SETPENCOLOUR': {
-      'args': [NumberToken],
-      'f': function (value) {
-        const palette = [
-          'black', 'blue', 'green', 'cyan', 'red', 'magenta', 'yellow', 'white',
-          'brown', 'tan', 'forest', 'aqua', 'salmon', 'purple', 'orange', 'grey'
-        ];
-        if (palette[value]) {
-          this.turtle.penColor(palette[value]);
-        } else {
-          // TODO log an error?
+      // VARIABLES
+      'MAKE': {
+        'args': [WordToken, null],
+        'f': (name, value) => {
+          this.variables.set(name, value);
+          return value;
         }
-      }
-    },
-    'PRINT': {
-      'args': [null],
-      'f': function (arg) { console.log(arg); }
-    },
+      },
 
-    // VARIABLES
-    'MAKE': {
-      'args': [WordToken, null],
-      'f': function (name, value) {
-        this.variables.set(name, value);
-        return value;
-      }
-    },
-
-    // MATH
-    'SUM': {
-      'args': [NumberToken, NumberToken],
-      'f': function (left, right) {
-        return left + right;
-      }
-    },
-    'DIFFERENCE': {
-      'args': [NumberToken, NumberToken],
-      'f': function (left, right) {
-        return left - right;
-      }
-    },
-    'MINUS': {
-      'args': [NumberToken],
-      'f': function (value) {
-        return -value;
-      }
-    },
-    'PRODUCT': {
-      'args': [NumberToken, NumberToken],
-      'f': function (left, right) {
-        return left * right;
-      }
-    },
-    'QUOTIENT': {
-      'args': [NumberToken, NumberToken],
-      'f': function (left, right) {
-        return left / right;
-      }
-    },
+      // MATH
+      'SUM': {
+        'args': [NumberToken, NumberToken],
+        'f': (left, right) => left + right,
+      },
+      'DIFFERENCE': {
+        'args': [NumberToken, NumberToken],
+        'f': (left, right) => left - right,
+      },
+      'MINUS': {
+        'args': [NumberToken],
+        'f': (value) => -value,
+      },
+      'PRODUCT': {
+        'args': [NumberToken, NumberToken],
+        'f': (left, right) => left * right,
+      },
+      'QUOTIENT': {
+        'args': [NumberToken, NumberToken],
+        'f': (left, right) => left / right,
+      },
+    };
   };
 }
 
+var module = module || {};
 module.exports = {
   Turtle,
   Logo,
@@ -408,6 +432,6 @@ module.exports = {
   ListToken,
   WordToken,
   NumberToken,
-  SymbolToken,
+  VariableToken,
   CommandToken,
 };
