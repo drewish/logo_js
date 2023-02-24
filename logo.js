@@ -407,6 +407,7 @@ class Logo {
       'CLEAN': {
         'args': [],
         'f': () => {
+          this.turtle.endPath();
           this.trigger('path.remove_all');
           this.turtle.startPath();
         }
@@ -414,8 +415,8 @@ class Logo {
       'CLEARSCREEN': {
         'args': [],
         'f': () => {
-          this.commands.CLEAN.f.apply(this);
           this.commands.HOME.f.apply(this);
+          this.commands.CLEAN.f.apply(this);
         }
       },
       'SHOWTURTLE': {
