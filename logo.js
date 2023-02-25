@@ -363,6 +363,18 @@ class Logo {
 
   builtInCommands() {
     return {
+      'RUN': {
+        'args': [ListToken],
+        'f': (list) => {
+          let result;
+          // Need to reuse the same tokens each time through the loop.
+          const copy = list.slice(0);
+          while (copy.length) {
+            result = copy.shift().evaluate(copy);
+          }
+          return result;
+        }
+      },
       // CONTROL FLOW
       'REPEAT': {
         'args': [NumberToken, ListToken],
