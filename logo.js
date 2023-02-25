@@ -170,6 +170,16 @@ class WordToken extends Token {}
 
 class NumberToken extends Token {}
 
+class BooleanToken extends Token {
+  /**
+   * @param {boolean} value
+   * @param {number | undefined} line
+   */
+    constructor(value, line) {
+      super(value, line)
+    }
+}
+
 // TODO I'm not in love with the name... VariableToken maybe?
 class VariableToken extends Token {
   /**
@@ -320,10 +330,13 @@ class Logo {
         else if (token.value[0] == '"') {
           token = new WordToken(token.value.substr(1), token.line);
         }
+        else if (['true', 'false'].includes(token.value.toLowerCase())) {
+          token = new BooleanToken(token.value.toLowerCase() == 'true', token.line);
+        }
         else if (parseInt(token.value, 10).toString() == token.value) {
           token = new NumberToken(parseInt(token.value, 10), token.line);
         }
-        else if (parseFloat(token.value).toString() == token.value) {
+        else if (/^[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$/.test(token.value)) {
           token = new NumberToken(parseFloat(token.value), token.line);
         }
         else {
@@ -497,6 +510,7 @@ module.exports = {
   Token,
   ListToken,
   WordToken,
+  BooleanToken,
   NumberToken,
   VariableToken,
   CommandToken,

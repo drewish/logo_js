@@ -1,5 +1,6 @@
+// @ts-check
 require('should');
-const { Logo, ListToken } = require('./logo');
+const { Logo, BooleanToken, ListToken, NumberToken } = require('./logo');
 
 describe('Logo', () => {
   const logo = new Logo();
@@ -18,7 +19,38 @@ describe('Logo', () => {
     });
   });
 
-  describe('#parseTokens', () => {
+  describe.only('#parseTokens', () => {
+    it('handles numeric values', () => {
+      const tokens = [
+        { line: 1, value: '130' },
+        { line: 2, value: '1.30' },
+      ];
+      const tree = logo.parseTokens(tokens);
+      tree.should.be.an.instanceOf(Array).and.have.length(2);
+      tree[0].should.be.an.instanceOf(NumberToken);
+      tree[0].value.should.eql(130);
+      tree[1].should.be.an.instanceOf(NumberToken);
+      tree[1].value.should.eql(1.30);
+    });
+    it('handles boolean values', () => {
+      const tokens = [
+        { line: 1, value: 'true' },
+        { line: 2, value: 'True' },
+        { line: 3, value: 'TRUE' },
+        { line: 4, value: 'false' },
+        { line: 5, value: 'False' },
+        { line: 6, value: 'FALSE' },
+      ];
+      const tree = logo.parseTokens(tokens);
+      tree.should.be.an.instanceOf(Array).and.have.length(6);
+      tree.every((val) => val.should.be.an.instanceOf(BooleanToken));
+      tree[0].value.should.eql(true);
+      tree[1].value.should.eql(true);
+      tree[2].value.should.eql(true);
+      tree[3].value.should.eql(false);
+      tree[4].value.should.eql(false);
+      tree[5].value.should.eql(false);
+    });
     it('nests the contents of lists', () => {
       const tokens = [
         { line: 1, value: '[' },
