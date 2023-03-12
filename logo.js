@@ -5,6 +5,7 @@ class Turtle {
   #x = 0;
   #y = 0;
   #angle = 0;
+  #drawing = true;
   #visible = true;
   #color = 'black';
 
@@ -30,14 +31,18 @@ class Turtle {
     }
   };
 
+  get drawing() {
+    return this.#drawing;
+  }
+
   penUp() {
     this.endPath();
-    this.drawing = false;
+    this.#drawing = false;
   };
 
   penDown() {
-    if (!this.drawing) {
-      this.drawing = true;
+    if (!this.#drawing) {
+      this.#drawing = true;
       this.startPath();
     }
   };

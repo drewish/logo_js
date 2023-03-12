@@ -247,10 +247,18 @@ describe('Logo', () => {
 
     describe('7.5 Pen and Background Control', () => {
       describe('pendown', () => {
-        it('does');
+        it('starts drawing', () => {
+          logo.turtle.penUp();
+          logo.runInput('pendown');
+          logo.turtle.drawing.should.eql(true);
+        });
       });
       describe('penup', () => {
-        it('does');
+        it('stops drawing', () => {
+          logo.turtle.penDown();
+          logo.runInput('penup');
+          logo.turtle.drawing.should.eql(false);
+        });
       });
       describe('penpaint', () => { it('is not implemented'); });
       describe('penerase', () => { it('is not implemented'); });
